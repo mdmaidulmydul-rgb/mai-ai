@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { NextRequest, NextResponse } from "next/server"
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 const SYSTEM_PROMPT = `You are MAI AI — an autonomous AI agent inspired by Manus AI. You can:
 - Browse the web and research topics
@@ -34,30 +31,43 @@ export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return NextResponse.json({
-        response: 'OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.',
+        response: "Groq API key not configured. Please add GROQ_API_KEY to your environment variables.",
         tasks: []
       })
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages.slice(-10), // Last 10 messages for context
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
+    const response = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...messages.slice(-10),
+        ],
+        temperature: 0.7,
+        max_tokens: 2048,
+        response_format: { type: "json_object" },
+      }),
     })
 
-    const content = completion.choices[0]?.message?.content || '{}'
-    
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Groq API error")
+    }
+
+    const content = data.choices[0]?.message?.content || "{}"
+
     try {
       const parsed = JSON.parse(content)
       return NextResponse.json({
-        response: parsed.response || 'Task completed.',
+        response: parsed.response || "Task completed.",
         tasks: parsed.tasks || [],
       })
     } catch {
@@ -67,9 +77,9 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (error: any) {
-    console.error('OpenAI error:', error)
+    console.error("Groq error:", error)
     return NextResponse.json({
-      response: `Error: ${error.message || 'Something went wrong'}`,
+      response: `Error: ${error.message || "Something went wrong"}`,
       tasks: [],
     }, { status: 500 })
   }
