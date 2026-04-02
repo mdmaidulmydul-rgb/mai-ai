@@ -16,7 +16,9 @@
     "ai": "^3.1.30",
     "lucide-react": "^0.379.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^2.3.0",
+    "@supabase/supabase-js": "^2.43.4",
+    "groq-sdk": "^0.3.3"
   },
   "devDependencies": {
     "typescript": "^5",
