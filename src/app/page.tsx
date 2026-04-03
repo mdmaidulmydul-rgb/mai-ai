@@ -14,8 +14,8 @@ export default function Home() {
   }, [])
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const { data } = await supabase.auth.getUser()
+    if (!data.user) {
       router.push('/login')
     } else {
       setChecking(false)
